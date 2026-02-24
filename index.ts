@@ -17,23 +17,31 @@ const messageAll = (message: string) => {
     });
 }
 
-const messageOne = (message: string, sender: string) => {
-    const content = message.split(' ')
-    if (content[0] !== '/dm') return;
+const userCommands = ['/dm', '/ls'];
 
-    const reciever = content[1];
-    const body = content.splice(2).join(' ');
+const commands = (message: string, sender: string) => {
+    const content = message.split(' ');
+    if (!userCommands.includes(content[0]!)) return;
 
-    for (const client of clients.values()) {
-        if (client.username === reciever && reciever !== sender) {
-            client.socket.write(`[DM] ${sender}: ${body}`);
-            console.log(`DM   - [${sender}] sent private message to [${reciever}]\n`);
-            return;
-        }  
-    };
-
-    // If reciever's username not found
-    clients.get(sender)?.socket.write(`User ${reciever} not found. No message sent\n`)
+    // Lists the users currently in the room
+    if (content[0] == '/ls') {
+        clients.get(sender)?.socket.write("[ " + Array.from(clients.keys()).join(", ") + " ]");
+    } 
+    
+    if (content[0] === '/dm') {
+        const reciever = content[1];
+        const body = content.splice(2).join(' ');
+        
+        for (const client of clients.values()) {
+            if (client.username === reciever && reciever !== sender) {
+                client.socket.write(`[DM] ${sender}: ${body}`);
+                console.log(`DM   - [${sender}] sent private message to [${reciever}]\n`);
+                return;
+            }  
+        };
+        // If reciever's username not found
+        clients.get(sender)?.socket.write(`User ${reciever} not found. No message sent\n`)
+    }
 }
 
 const closeSocket = (sock: Socket) => {
@@ -81,7 +89,7 @@ const server = Bun.listen({
                 if (!user) return;
 
                 if (txt.startsWith('/')) {
-                    messageOne(txt, user);
+                    commands(txt, user);
                     return;
                 }
 
